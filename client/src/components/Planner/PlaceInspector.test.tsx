@@ -20,7 +20,7 @@ vi.mock('../../api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/client')>();
   return {
     ...actual,
-    mapsApi: { details: vi.fn().mockResolvedValue({ place: null }) },
+    mapsApi: { details: vi.fn().mockResolvedValue({ place: null }), placeEnrichment: vi.fn() },
   };
 });
 
@@ -97,6 +97,7 @@ beforeEach(() => {
   seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius' } });
 
   vi.mocked(mapsApi.details).mockResolvedValue({ place: null });
+  vi.mocked(mapsApi.placeEnrichment).mockResolvedValue({ photos: [], description: null, facts: [] });
 });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -174,13 +175,7 @@ describe('PlaceInspector', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(<PlaceInspector {...defaultProps} onClose={onClose} />);
-    // Find the X button — it's the close button with an X icon inside
-    const buttons = screen.getAllByRole('button');
-    // The close button is typically in the header, first button with X icon
-    const closeBtn = buttons.find(btn => btn.querySelector('svg'));
-    // Click the last-found header button that has no text label (the X)
-    // More reliable: find button by its position as close button
-    await user.click(buttons[0]); // first button is the close X
+    await user.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -1577,5 +1572,40 @@ describe('PlaceInspector blur booking codes (#2457)', () => {
   it('FE-PLANNER-INSPECTOR-104: with the setting off the strip shows the code plainly', () => {
     renderWithBooking(false);
     expect(isBlurred(screen.getByText(/TABLE-SECRET/))).toBe(false);
+  });
+});
+
+// ── View-mode photo gallery ───────────────────────────────────────────────────
+
+describe('PlaceInspector photo gallery', () => {
+  const candidate = {
+    key: 'p1',
+    url: '/api/maps/place-photo/p1/bytes',
+    attribution: 'Jane Doe',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: null,
+    sourceUrl: null,
+    source: 'wikimedia' as const,
+  };
+
+  it('FE-PLANNER-INSPECTOR-105: the place photo opens the gallery with the custom image and the provider pictures', async () => {
+    const user = userEvent.setup();
+    const pictured = buildPlace({ id: 401, name: 'Pictured', image_url: '/uploads/places/mine.jpg', lat: 48.85, lng: 2.29, google_place_id: 'gp-401' });
+    vi.mocked(mapsApi.placeEnrichment).mockResolvedValue({ photos: [candidate], description: null, facts: [] });
+    render(<PlaceInspector {...defaultProps} place={pictured} />);
+
+    await user.click(screen.getByRole('button', { name: 'Photos' }));
+
+    // Two pictures: the stored one, then the provider candidate it fetched.
+    await waitFor(() => expect(screen.getByText('1 / 2')).toBeTruthy());
+    // The provider picture is the second slide, credited by its author and licence.
+    await user.click(document.querySelector('.lucide-chevron-right')!.closest('button')!);
+    expect(screen.getByAltText('Jane Doe · CC BY-SA 4.0')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-106: no picture and no coordinates means no gallery trigger', () => {
+    const bare = buildPlace({ id: 402, name: 'Bare', image_url: null, lat: null, lng: null });
+    render(<PlaceInspector {...defaultProps} place={bare} />);
+    expect(screen.queryByRole('button', { name: 'Photos' })).toBeNull();
   });
 });

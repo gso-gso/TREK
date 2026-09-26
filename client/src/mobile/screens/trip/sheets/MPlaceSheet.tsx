@@ -14,6 +14,7 @@ import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStor
 import { collectionTargetFromPlace } from '../lib/collectionTarget'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import PlaceRating from '../../../../components/shared/StarRating'
+import PlacePhotoGallery from '../../../../components/Planner/PlacePhotoGallery'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import TrackColorPicker from '../../../../components/shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../../../../components/Map/trackColors'
@@ -227,16 +228,32 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             <div className="flex items-start gap-3">
               <div className="flex flex-none flex-col items-center gap-[5px]">
                 <div className="relative h-[52px] w-[52px]">
-                  {place.image_url ? (
-                    <div
-                      className="h-[52px] w-[52px] rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-cover bg-center"
-                      style={{ backgroundImage: `url('${place.image_url}')` }}
-                    />
-                  ) : (
-                    <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-[color:var(--m-ic)]">
-                      <CatIcon size={20} strokeWidth={1.8} className="text-m-muted" />
-                    </div>
-                  )}
+                  <PlacePhotoGallery place={place} language={planner.language}>
+                    {(openGallery, canOpen, loading) => {
+                      const avatar = place.image_url ? (
+                        <div
+                          className="h-[52px] w-[52px] rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-cover bg-center"
+                          style={{ backgroundImage: `url('${place.image_url}')` }}
+                        />
+                      ) : (
+                        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-[color:var(--m-ic)]">
+                          <CatIcon size={20} strokeWidth={1.8} className="text-m-muted" />
+                        </div>
+                      )
+                      return canOpen ? (
+                        <button
+                          type="button"
+                          onClick={openGallery}
+                          disabled={loading}
+                          aria-label={t('photos.title')}
+                          title={t('photos.title')}
+                          className={`block h-[52px] w-[52px] ${loading ? 'opacity-60' : 'cursor-zoom-in'}`}
+                        >
+                          {avatar}
+                        </button>
+                      ) : avatar
+                    }}
+                  </PlacePhotoGallery>
                 </div>
                 {category && (
                   <span className="flex max-w-[76px] items-center gap-1 rounded-full border border-[color:var(--m-faint)] px-2 py-[2px] font-geist text-[0.625rem] font-semibold text-m-muted">

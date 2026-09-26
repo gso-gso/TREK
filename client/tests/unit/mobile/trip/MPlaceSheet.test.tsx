@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { server } from '../../../helpers/msw/server'
 import { assignmentsApi } from '../../../../src/api/client'
 import MPlaceSheet from '../../../../src/mobile/screens/trip/sheets/MPlaceSheet'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
@@ -496,5 +498,26 @@ describe('MPlaceSheet', () => {
     renderSheet(bookingPlanner({ id: 9, assignment_id: 999, title: 'Someone elses ferry', status: 'pending', type: 'ferry' }))
 
     expect(screen.queryByText('Someone elses ferry')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSH-033: the place photo opens the gallery with the custom and provider pictures', async () => {
+    server.use(http.post('/api/maps/enrichment', () => HttpResponse.json({
+      photos: [{
+        key: 'p1', url: '/api/maps/place-photo/p1/bytes', attribution: 'Jane Doe',
+        license: 'CC BY-SA 4.0', licenseUrl: null, sourceUrl: null, source: 'wikimedia',
+      }],
+      description: null,
+      facts: [],
+    })))
+
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }))
+
+    await waitFor(() => expect(screen.getByText('1 / 2')).toBeInTheDocument())
+  })
+
+  it('FE-MOB-PLSH-034: a place with no picture and no coordinates has no gallery trigger', () => {
+    renderSheet(makePlanner({ selectedPlace: { ...PLACE, image_url: null, lat: null, lng: null } }))
+    expect(screen.queryByRole('button', { name: 'Photos' })).not.toBeInTheDocument()
   })
 })
