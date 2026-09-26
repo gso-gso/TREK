@@ -856,18 +856,16 @@ describe('PlaceInspector', () => {
     }
   });
 
-  // ── Custom thumbnail upload (#1136) ──────────────────────────────────────────
+  // ── Custom thumbnail is edited in the editor, not here (#1136) ───────────────
 
-  it('FE-PLANNER-INSPECTOR-049: onUploadImage in trip mode renders the upload-capable avatar', () => {
-    render(<PlaceInspector {...defaultProps} onUploadImage={vi.fn()} />);
-    // The place carries no image yet, so the avatar offers "Upload image".
-    expect(screen.getByRole('button', { name: 'Upload image' })).toBeTruthy();
-  });
-
-  it('FE-PLANNER-INSPECTOR-050: without onUploadImage the avatar has no upload control', () => {
-    render(<PlaceInspector {...defaultProps} />);
+  it('FE-PLANNER-INSPECTOR-049: the read-only inspector never offers an image upload control', () => {
+    // Editing a place's image only happens in the editor (PlaceFormModal); the
+    // inspector shows the thumbnail as it is, with no camera and no remove button.
+    const withImage = buildPlace({ id: 203, name: 'Pictured', image_url: '/uploads/places/x.jpg' });
+    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Upload image' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Change image' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove image' })).toBeNull();
   });
 
 // ── Track colour (#776) ──────────────────────────────────────────────────────
@@ -1281,15 +1279,12 @@ describe('PlaceInspector', () => {
     expect(document.querySelector('iframe[src*="tide-widget"]')).toBeNull();
   });
 
-  // ── Custom thumbnail callbacks (#1136) ───────────────────────────────────────
+  // ── Custom thumbnail is edited in the editor (#1136) ─────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-088: removing the custom image clears image_url through onUpdatePlace', async () => {
-    const onUpdatePlace = vi.fn();
-    const onUploadImage = vi.fn(async () => {});
+  it('FE-PLANNER-INSPECTOR-088: the read-only inspector has no remove-image control', () => {
     const withImage = buildPlace({ id: 706, name: 'Pictured', image_url: '/uploads/places/x.jpg' });
-    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={onUpdatePlace} onUploadImage={onUploadImage} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }));
-    expect(onUpdatePlace).toHaveBeenCalledWith(706, { image_url: null });
+    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Remove image' })).toBeNull();
   });
 
   it('FE-PLANNER-INSPECTOR-090: opening hours are read for the selected day, not for today', async () => {
@@ -1408,13 +1403,9 @@ describe('PlaceInspector', () => {
     }
   });
 
-  it('FE-PLANNER-INSPECTOR-089: picking a file hands it to onUploadImage', async () => {
-    const onUploadImage = vi.fn(async () => {});
-    render(<PlaceInspector {...defaultProps} onUploadImage={onUploadImage} />);
-    const input = document.querySelector('input[accept*="image"]') as HTMLInputElement;
-    const file = new File(['x'], 'thumb.png', { type: 'image/png' });
-    fireEvent.change(input, { target: { files: [file] } });
-    await waitFor(() => expect(onUploadImage).toHaveBeenCalledWith(place.id, file));
+  it('FE-PLANNER-INSPECTOR-089: the read-only inspector exposes no image file input', () => {
+    render(<PlaceInspector {...defaultProps} />);
+    expect(document.querySelector('input[accept*="image"]')).toBeNull();
   });
 
   it('FE-PLANNER-INSPECTOR-098: deselecting and reselecting a place survives a rerender', async () => {

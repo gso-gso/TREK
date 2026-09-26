@@ -154,7 +154,10 @@ describe('MPlaceSheet', () => {
     expect(screen.getByText('Museum')).toBeInTheDocument()
     expect(screen.getByText('Habsburg collections')).toBeInTheDocument()
     expect(screen.getByText('Book the skip-the-line ticket')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Change image' })).toBeInTheDocument()
+    // The thumbnail is shown as it is; editing it belongs to the editor sheet.
+    expect(screen.queryByRole('button', { name: 'Upload image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Change image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Remove image' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-PLSH-003: clears the place selection when closed', () => {
@@ -319,47 +322,17 @@ describe('MPlaceSheet', () => {
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Upload failed'))
   })
 
-  it('FE-MOB-PLSH-019: uploads and removes the custom place image', async () => {
-    const { planner } = renderSheet()
-    const input = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement
-    const openPicker = vi.spyOn(input, 'click')
-    fireEvent.click(screen.getByRole('button', { name: 'Change image' }))
-    expect(openPicker).toHaveBeenCalledTimes(1)
-
-    const picture = new File(['x'], 'front.png', { type: 'image/png' })
-    selectFiles(input, [picture])
-    await waitFor(() => expect(planner.tripActions.uploadPlaceImage).toHaveBeenCalledWith(5, 101, picture))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }))
-    await waitFor(() => expect(planner.tripActions.updatePlace).toHaveBeenCalledWith(5, 101, { image_url: null }))
+  it('FE-MOB-PLSH-019: the read sheet exposes no image file input', () => {
+    renderSheet()
+    // The editor sheet carries the camera, the remove button and the file input.
+    expect(document.querySelector('input[type="file"][accept*="image"]')).toBeNull()
   })
 
-  it('FE-MOB-PLSH-020: reports a failing image upload and offers upload on a place without one', async () => {
-    const planner = makePlanner({ selectedPlace: { ...PLACE, image_url: null } })
-    vi.mocked(planner.tripActions.uploadPlaceImage).mockRejectedValue(new Error('unsupported'))
-    renderSheet(planner)
-    expect(screen.getByRole('button', { name: 'Upload image' })).toBeInTheDocument()
+  it('FE-MOB-PLSH-020: a place without an image still gets no upload control', () => {
+    renderSheet(makePlanner({ selectedPlace: { ...PLACE, image_url: null } }))
+    expect(screen.queryByRole('button', { name: 'Upload image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Change image' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove image' })).not.toBeInTheDocument()
-
-    const input = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement
-    selectFiles(input, [new File(['x'], 'front.png', { type: 'image/png' })])
-    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Could not upload image'))
-  })
-
-  it('FE-MOB-PLSH-021: blocks the picker while an image request runs and reports its failure', async () => {
-    const planner = makePlanner()
-    let rejectUpdate: (err: Error) => void = () => {}
-    vi.mocked(planner.tripActions.updatePlace).mockReturnValue(new Promise((_res, rej) => { rejectUpdate = rej }))
-    renderSheet(planner)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }))
-    const input = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement
-    const openPicker = vi.spyOn(input, 'click')
-    fireEvent.click(screen.getByRole('button', { name: 'Change image' }))
-    expect(openPicker).not.toHaveBeenCalled()
-
-    await act(async () => { rejectUpdate(new Error('nope')) })
-    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Could not remove image'))
   })
 
   it('FE-MOB-PLSH-022: hands the place to the save-to-collection picker', () => {

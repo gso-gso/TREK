@@ -59,6 +59,9 @@ interface PlaceDetailsColumnProps {
   fluid?: boolean
   /** False on an instance with no Google key, which is most of them. */
   t: TranslationFn
+  /** Rendered above the panel's own title — the editor drops the custom-image
+   *  avatar here, so it sits on top of the place details rather than in the form. */
+  header?: React.ReactNode
 }
 
 /**
@@ -125,6 +128,7 @@ export default function PlaceDetailsColumn({
   locale = 'en-US',
   fluid = false,
   t,
+  header,
 }: PlaceDetailsColumnProps): React.ReactElement {
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
   const [state, setState] = useState<LoadState>('idle')
@@ -223,6 +227,7 @@ export default function PlaceDetailsColumn({
     // stretched to the form's height by the row it sits in, so the extra room
     // costs nothing that was being used.
     <aside className={`w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch`}>
+      {header}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
         <Landmark size={15} className="text-accent" />
         <span className="text-body font-semibold text-content">{t('places.details.title')}</span>

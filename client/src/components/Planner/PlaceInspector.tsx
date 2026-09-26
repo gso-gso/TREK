@@ -9,7 +9,6 @@ import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
 import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route, StickyNote } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
-import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
 import { BlurredCode } from '../shared/BookingCode'
 import PlaceRating from '../shared/StarRating'
 import TrackColorPicker from '../shared/TrackColorPicker'
@@ -170,8 +169,6 @@ interface PlaceInspectorProps {
   tripMembers?: TripMember[]
   onSetParticipants?: (assignmentId: number, dayId: number, participantIds: number[]) => void
   onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
-  /** Upload a custom thumbnail (#1136); enables the click-to-change avatar in trip mode. */
-  onUploadImage?: (placeId: number, file: File) => Promise<void>
   /** Cast/clear the current user's star vote (#1435); enables the rating row. */
   onRate?: (placeId: number, rating: number | null) => Promise<void> | void
   leftWidth?: number
@@ -187,7 +184,7 @@ export default function PlaceInspector({
   place, categories, mode = 'trip', days = [], selectedDayId = null, selectedAssignmentId = null,
   assignments = {}, reservations = [], onEditTransport, onEditReservation,
   onClose, onEdit: editPlace, onDelete: deletePlace, onAssignToDay, onRemoveAssignment,
-  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onUploadImage, onRate,
+  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onRate,
   leftWidth = 0, rightWidth = 0,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList, roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
@@ -397,7 +394,6 @@ export default function PlaceInspector({
         <PlaceInspectorHeader openNow={openNow} place={place} category={category} t={t} editingName={editingName}
           nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue} commitNameEdit={commitNameEdit}
           handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit} onUpdatePlace={onUpdatePlace}
-          onUploadImage={mode === 'trip' && onUpdatePlace ? onUploadImage : undefined}
           locale={locale} timeFormat={timeFormat} onClose={onClose} />
 
         {/* Content — scrollable */}
@@ -777,7 +773,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
 
 
 function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameInputRef, nameValue, setNameValue,
-  commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, onUploadImage, locale, timeFormat, onClose }: any) {
+  commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, locale, timeFormat, onClose }: any) {
   return (
         <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
           {/* Avatar with open/closed ring + tag */}
@@ -786,11 +782,7 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
               borderRadius: '50%', padding: 2.5,
               background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent',
             }}>
-              {onUploadImage
-                ? <PlaceAvatarUpload place={place} category={category} size={52}
-                    onUpload={(file: File) => onUploadImage(place.id, file)}
-                    onRemove={() => onUpdatePlace(place.id, { image_url: null })} />
-                : <PlaceAvatar place={place} category={category} size={52} />}
+              <PlaceAvatar place={place} category={category} size={52} />
             </div>
             {openNow === null && <PhotoCredit imageUrl={place.image_url} />}
             {openNow !== null && (
